@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satellite Deviation Tracker | Real-Time Simulation</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --panel-dark: #161b22;
+            --accent-blue: #d4002e;
+            --text-light: #d1d5db;
+            --hover-blue: #0097a7;
+            --glow-light: rgba(0, 188, 212, 0.4);
+            --shadow-light: rgba(0, 188, 212, 0.15);
+            --telemetry-bg: #10141c;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 50%, rgba(22, 27, 34, 0.05) 1%, transparent 1%);
+            background-size: 30px 30px;
+        }
+
+        header {
+            background: var(--panel-dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 70px;
+            border-bottom: 2px solid var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            color: var(--accent-blue);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            transition: 0.4s;
+            text-shadow: 0 0 5px var(--glow-light), 0 0 10px var(--glow-light);
+        }
+
+        .logo:hover {
+            color: #ffffff;
+            transform: scale(1.05);
+            text-shadow: 0 0 10px var(--accent-blue), 0 0 20px var(--accent-blue);
+        }
+
+        nav a {
+            color: var(--text-light);
+            margin: 0 20px;
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease, transform 0.2s;
+            padding: 5px 0;
+        }
+
+        nav a::after {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--accent-blue);
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0px;
+            transition: width 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 90px 30px 60px;
+            animation: fadeIn 1.5s ease-out;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            color: var(--accent-blue);
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 8px var(--glow-light);
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        #info {
+            text-align: center;
+            background: var(--panel-dark);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            width: 95%;
+            max-width: 1000px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            border: 1px solid var(--shadow-light);
+            box-shadow: 0 0 10px var(--shadow-light);
+            transition: 0.3s;
+        }
+
+        canvas {
+            display: block;
+            margin: 50px auto;
+            background: #0a0f15;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1000px;
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 0 20px var(--glow-light);
+            transition: 0.5s;
+        }
+
+        canvas:hover {
+            transform: scale(1.01);
+            box-shadow: 0 0 30px var(--accent-blue);
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 50px;
+        }
+
+        button {
+            background: var(--accent-blue);
+            border: none;
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 8px;
+            margin: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        button:hover {
+            background: var(--hover-blue);
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.7), 0 0 10px var(--glow-light);
+        }
+
+        #map {
+            height: 500px;
+            width: 95%;
+            max-width: 1000px;
+            margin: 50px auto;
+            border-radius: 15px;
+            border: 1px solid var(--accent-blue);
+            box-shadow: 0 0 20px var(--shadow-light);
+            transition: 0.5s;
+        }
+
+        #telemetry {
+            background: var(--telemetry-bg);
+            width: 95%;
+            max-width: 1000px;
+            margin: 25px auto 70px;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border: 1px solid var(--shadow-light);
+            white-space: pre-line;
+            line-height: 1.7;
+            color: #00ff7f;
+            height: 300px;
+            overflow-y: scroll;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+            font-size: 14px;
+            background: #0b0f14;
+            margin-top: 50px;
+            border-top: 1px solid rgba(0, 188, 212, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">NaviC</div>
+    <nav>
+        <a href="#simulation">Simulation</a>
+        <a href="#map">Map</a>
+        <a href="#telemetry">Telemetry</a>
+    </nav>
+</header>
+
+<div class="hero">
+    <h1>NaviC</h1>
+    <p>Experience how <strong>real-time satellite data deviations</strong> are detected and corrected for precise navigation accuracy in critical scenarios.</p>
+</div>
+
+<div id="info">Loading true position...</div>
+<canvas id="satelliteCanvas" width="900" height="500"></canvas>
+
+<div class="controls">
+    <button id="startBtn">▶ Start Simulation</button>
+    <button id="stopBtn">⏸ Stop Simulation</button>
+</div>
+
+<div id="map"></div>
+<div id="telemetry">Waiting for telemetry data...</div>
+
+<footer>© 2025 SAT-Track Simulation by Tamilselvan A.N | PSNA College | All Rights Reserved</footer>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+    // ================== Firebase Config ==================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDZUJyKhOyaDKuA3G7qQVyxWzz0b0bL_4o",
+        authDomain: "http://navic-aim28.firebaseapp.com",
+        projectId: "navic-aim28",
+        storageBucket: "navic-aim28.firebasestorage.app",
+        messagingSenderId: "613266393719",
+        appId: "1:613266393719:web:0fd9e678f05f9a636b9472"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    // ======================================================
+
+    const canvas = document.getElementById("satelliteCanvas");
+    const ctx = canvas.getContext("2d");
+    const infoBox = document.getElementById("info");
+    const telemetryBox = document.getElementById("telemetry");
+
+    const center = { x: canvas.width / 2, y: canvas.height / 2 };
+    const maxDeviation = 50;
+    const scale = 4;
+    const points = [];
+    let step = 0, running = false, animationId;
+
+    const baseLat = 22.821063, baseLon = 75.942589, baseAlt = 555.30;
+
+    const map = L.map('map').setView([baseLat, baseLon], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    let trueMarker = L.circleMarker([baseLat, baseLon], {
+        radius: 8, color: '#00bcd4', fillColor: '#00bcd4', fillOpacity: 1, weight: 2
+    }).addTo(map).bindPopup(`True Position<br>Lat: ${baseLat.toFixed(6)}, Lon: ${baseLon.toFixed(6)}, Alt: ${baseAlt.toFixed(2)} m`).openPopup();
+
+    let deviationMarker = null;
+    let path = L.polyline([], { color: '#0097a7', weight: 3, opacity: 0.8 }).addTo(map);
+
+    function drawTruePoint() {
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "#00bcd4";
+        ctx.shadowColor = "#00bcd4";
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.closePath();
+        ctx.shadowBlur = 0;
+    }
+
+    function generateDeviation() {
+        const distance = Math.random() * maxDeviation;
+        const angle = Math.random() * 2 * Math.PI;
+        const dx = distance * Math.cos(angle);
+        const dy = distance * Math.sin(angle);
+        return { x: center.x + dx * scale, y: center.y + dy * scale, distance, dx, dy };
+    }
+
+    function drawDeviationPoint(p) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff6f00";
+        ctx.shadowColor = "#ff6f00";
+        ctx.shadowBlur = 5;
+        ctx.fill();
+        ctx.closePath();
+        ctx.shadowBlur = 0;
+    }
+
+    function connectPath(p1, p2) {
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = "#00bcd4";
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        ctx.closePath();
+    }
+
+    function updateMap(dx, dy, newPoint) {
+        const deltaLat = dy / 111320;
+        const deltaLon = dx / (111320 * Math.cos(baseLat * Math.PI / 180));
+        const newLat = baseLat + deltaLat;
+        const newLon = baseLon + deltaLon;
+
+        if (deviationMarker) deviationMarker.setLatLng([newLat, newLon]);
+        else deviationMarker = L.circleMarker([newLat, newLon], {
+            radius: 6, color: '#ff6f00', fillColor: '#ff6f00', fillOpacity: 0.9, weight: 1
+        }).addTo(map);
+
+        path.addLatLng([newLat, newLon]);
+
+        const now = new Date();
+        const utcTime = now.toUTCString().split("GMT")[0].trim();
+        const conf = (Math.random() * 0.2 + 0.7).toFixed(2);
+
+        telemetryBox.textContent += 
+`>>> [SAT-LOG ${step + 1}] 
+TIME: ${utcTime}
+RAW_POS: (Lat:${baseLat.toFixed(6)}, Lon:${baseLon.toFixed(6)}, Alt:${baseAlt.toFixed(2)}m)
+DEVIATION: (Dx:${dx.toFixed(3)}m, Dy:${dy.toFixed(3)}m) | Confidence: ${conf}
+CORRECTED_POS: (Lat:${newLat.toFixed(6)}, Lon:${newLon.toFixed(6)})
+---
+`;
+        telemetryBox.scrollTop = telemetryBox.scrollHeight;
+
+        // ================== Send to Firebase ==================
+        db.collection("telemetry").add({
+            step: step + 1,
+            timestamp: firebase.firestore.Timestamp.now(),
+            rawPosition: { lat: baseLat, lon: baseLon, alt: baseAlt },
+            deviation: { dx: dx, dy: dy, distance: newPoint.distance },
+            correctedPosition: { lat: newLat, lon: newLon },
+            confidence: conf
+        }).then(() => {
+            console.log("Telemetry sent to Firebase");
+        }).catch((error) => {
+            console.error("Error sending telemetry: ", error);
+        });
+        // ======================================================
+
+        infoBox.innerHTML = 
+`📡 Step ${step + 1} | Deviation: ${newPoint.distance.toFixed(2)} m | Accuracy: ${((maxDeviation - newPoint.distance) / maxDeviation * 100).toFixed(1)}%<br>
+📍 True Position: Lat: ${baseLat.toFixed(6)}, Lon: ${baseLon.toFixed(6)}, Alt: ${baseAlt.toFixed(2)} m`;
+    }
+
+    function simulate() {
+        if (!running) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawTruePoint();
+
+        for (let i = 1; i < points.length; i++) {
+            connectPath(points[i - 1], points[i]);
+            drawDeviationPoint(points[i]);
+        }
+
+        const newPoint = generateDeviation();
+        points.push(newPoint);
+        drawDeviationPoint(newPoint);
+        updateMap(newPoint.dx, newPoint.dy, newPoint);
+
+        step++;
+        if (points.length > 50) points.shift();
+
+        animationId = requestAnimationFrame(() => setTimeout(simulate, 800));
+    }
+
+    document.getElementById("startBtn").onclick = () => { 
+        if (!running) { 
+            running = true; 
+            infoBox.innerHTML = '⚡ Simulation Running...';
+            simulate(); 
+        } 
+    };
+    document.getElementById("stopBtn").onclick = () => { 
+        if (running) {
+            running = false; 
+            cancelAnimationFrame(animationId); 
+            infoBox.innerHTML = '⏸ Simulation Paused.<br>📍 True Position: Lat: '+baseLat.toFixed(6)+', Lon: '+baseLon.toFixed(6)+', Alt: '+baseAlt.toFixed(2)+' m';
+        }
+    };
+
+    drawTruePoint();
+    infoBox.innerHTML = `📍 True Position: Lat: ${baseLat.toFixed(6)}, Lon: ${baseLon.toFixed(6)}, Alt: ${baseAlt.toFixed(2)} m<br>Ready to start simulation...`;
+</script>
+</body>
+</html>
